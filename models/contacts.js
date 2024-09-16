@@ -1,11 +1,12 @@
 const fs = require("node:fs").promises;
 const path = require("node:path");
 
-require("nanoid");
-
 // require automatycznie ładuje i parsuje plik JSON, zmieniając go na obiekt JavaScript
 const contacts = require("./contacts.json");
 const { nanoid } = require("nanoid");
+
+const filename = "contacts.json";
+const filePath = path.join(__dirname, filename);
 
 const listContacts = async () => {
   try {
@@ -29,6 +30,7 @@ const removeContact = async (contactId) => {
     const filteredContacts = contacts.filter(
       (contact) => contact.id !== contactId
     );
+    await fs.writeFile(filePath, JSON.stringify(filteredContacts));
     return filteredContacts;
   } catch (error) {
     console.error(error.message);
@@ -43,6 +45,8 @@ const addContact = async ({ name, email, phone }) => {
     phone,
   };
   contacts.push(newContact);
+  await fs.writeFile(filePath, JSON.stringify(contacts, null, 2));
+
   return newContact;
 };
 
@@ -54,13 +58,11 @@ const updateContact = async (contactId, body) => {
     if (contactIndex === -1) {
       return null;
     }
+    const contact = contacts[contactIndex];
+    const updatedContact = { ...contact, ...body };
 
-    contacts[contactIndex] = {
-      ...contacts[contactIndex],
-      ...body,
-    };
-
-    return contacts[contactIndex];
+    await fs.writeFile(filePath, JSON.stringify(contacts, null, 2));
+    return updatedContact;
   } catch (error) {
     console.error("Error updating contact:", error);
     throw error;

@@ -86,6 +86,7 @@ router.put("/:contactId", async (req, res, next) => {
     if (!updatedContact) {
       return res.status(404).json({ message: "Not found" });
     }
+    return res.status(200).json(updatedContact);
   } catch (error) {
     next(error);
   }
