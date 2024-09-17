@@ -1,16 +1,34 @@
 const fs = require("node:fs").promises;
 const path = require("node:path");
+const { nanoid } = require("nanoid");
 
 // require automatycznie ładuje i parsuje plik JSON, zmieniając go na obiekt JavaScript
 const contacts = require("./contacts.json");
-const { nanoid } = require("nanoid");
 
 const filename = "contacts.json";
 const filePath = path.join(__dirname, filename);
 
+const readContactsFromFile = async () => {
+  try {
+    const data = await fs.readFile(filePath, "utf8");
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error reading contacts:", error.message);
+    throw error;
+  }
+};
+
+const writeContactsToFile = async (contacts) => {
+  try {
+    await fs.writeFile(filePath, JSON.stringify(contacts, null, 2));
+  } catch (error) {
+    console.error("Error writing contacts:", error.message);
+    throw error;
+  }
+};
 const listContacts = async () => {
   try {
-    return contacts;
+    return await readContactsFromFile();
   } catch (error) {
     console.error(error.message);
   }
@@ -18,7 +36,8 @@ const listContacts = async () => {
 
 const getContactById = async (contactId) => {
   try {
-    const oneContact = contacts.find((contact) => contact.id === contactId);
+    const contactList = await readContactsFromFile();
+    const oneContact = contactList.find((contact) => contact.id === contactId);
     return oneContact;
   } catch (error) {
     console.error(error.message);
@@ -27,10 +46,11 @@ const getContactById = async (contactId) => {
 
 const removeContact = async (contactId) => {
   try {
-    const filteredContacts = contacts.filter(
+    const contactList = await readContactsFromFile();
+    const filteredContacts = contactList.filter(
       (contact) => contact.id !== contactId
     );
-    await fs.writeFile(filePath, JSON.stringify(filteredContacts));
+    await writeContactsToFile(filteredContacts);
     return filteredContacts;
   } catch (error) {
     console.error(error.message);
@@ -38,30 +58,33 @@ const removeContact = async (contactId) => {
 };
 
 const addContact = async ({ name, email, phone }) => {
+  const contactList = await readContactsFromFile();
   const newContact = {
     id: nanoid(),
     name,
     email,
     phone,
   };
-  contacts.push(newContact);
-  await fs.writeFile(filePath, JSON.stringify(contacts, null, 2));
-
+  contactList.push(newContact);
+  await writeContactsToFile(contactList);
   return newContact;
 };
 
 const updateContact = async (contactId, body) => {
   try {
-    const contactIndex = contacts.findIndex(
+    const contactList = await readContactsFromFile();
+    const contactIndex = contactList.findIndex(
       (contact) => contact.id === contactId
     );
     if (contactIndex === -1) {
       return null;
     }
-    const contact = contacts[contactIndex];
-    const updatedContact = { ...contact, ...body };
+    const updatedContact = { ...contactList[contactIndex], ...body };
+    contactList[contactIndex] = updatedContact;
 
-    await fs.writeFile(filePath, JSON.stringify(contacts, null, 2));
+    // contactList.splice(contactIndex, 1, updatedContact);
+
+    await writeContactsToFile(contactList);
     return updatedContact;
   } catch (error) {
     console.error("Error updating contact:", error);
