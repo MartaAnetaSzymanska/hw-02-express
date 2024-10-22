@@ -12,13 +12,20 @@ app.use(cors());
 app.use(express.json());
 
 const contactsRouter = require("./routes/api/contacts");
+const usersRouter = require("./routes/api/users");
+
 app.use("/api/contacts", contactsRouter);
+app.use("/api/users", usersRouter);
 
 app.use((_, res) => {
   res.status(404).json({
     status: "error",
     code: 404,
-    message: "Use api on routes: /api/contacts",
+    message: `Use api on routes: 
+    /api/contacts - for all contacts
+    /api/signup - registration user {username, email, password}
+    /api/login - login {email, password}
+    /api/list - get message if user is authenticated`,
     data: "Not found",
   });
 });
