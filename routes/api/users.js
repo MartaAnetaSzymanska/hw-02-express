@@ -10,8 +10,9 @@ const User = require("../../models/user");
 const Joi = require("joi");
 
 const userValidationSchema = Joi.object({
-  email: Joi.string().email({ minDomainSegments: 2 }),
-  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{3,30}$")),
+  email: Joi.string().email({ minDomainSegments: 2 }).required,
+  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9!@#$%^&*]{3,30}$"))
+    .required,
 });
 
 router.post("/signup", async (req, res, next) => {
@@ -52,7 +53,7 @@ router.post("/login", async (req, res, next) => {
   }
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email }).lean();
+    const user = await User.findOne({ email });
     const passwordIsValid = await user.validatePassword(password);
     if (!user || !passwordIsValid) {
       return res.status(401).json({
