@@ -7,12 +7,13 @@ require("dotenv").config();
 const secret = process.env.SECRET;
 
 const User = require("../../models/user");
+const auth = require("../../middleware/auth");
+
 const Joi = require("joi");
 
 const userValidationSchema = Joi.object({
-  email: Joi.string().email({ minDomainSegments: 2 }).required,
-  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9!@#$%^&*]{3,30}$"))
-    .required,
+  email: Joi.string().email({ minDomainSegments: 2 }),
+  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9!@#$%^&*]{3,30}$")),
 });
 
 router.post("/signup", async (req, res, next) => {
@@ -77,6 +78,29 @@ router.post("/login", async (req, res, next) => {
         email: user.email,
         subscription: user.subscription,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/logout", auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.token = null;
+    await user.save();
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/current", auth, async (req, res) => {
+  try {
+    const user = req.user;
+    res.status(200).json({
+      email: user.email,
+      subscription: user.subcription,
     });
   } catch (err) {
     next(err);
