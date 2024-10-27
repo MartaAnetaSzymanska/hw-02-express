@@ -97,7 +97,15 @@ router.get("/logout", auth, async (req, res) => {
 
 router.get("/current", auth, async (req, res) => {
   try {
-    const user = req.user;
+    const authHeader = req.headers.authorization;
+    const token = authHeader.split(" ")[1];
+    const decodedToken = jwt.verify(token, secret);
+
+    const user = await User.findById(decodedToken.id);
+
+    if (!user || user.token !== token) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
     res.status(200).json({
       email: user.email,
       subscription: user.subcription,
