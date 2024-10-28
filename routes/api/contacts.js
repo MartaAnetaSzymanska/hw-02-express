@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
+const auth = require("../../middleware/auth");
+
 const {
   listContacts,
   getContactById,
@@ -10,16 +12,17 @@ const {
   updateStatus,
 } = require("../../service/services");
 
-router.get("/", async (req, res, next) => {
+router.get("/", auth, async (req, res, next) => {
   try {
-    const contacts = await listContacts();
+    const userId = req.user._id;
+    const contacts = await listContacts(userId);
     res.status(200).json(contacts);
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", auth, async (req, res, next) => {
   try {
     const contact = await getContactById(req.params.contactId);
     if (!contact) {
@@ -31,16 +34,20 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", auth, async (req, res, next) => {
   try {
-    const newContact = await addContact(req.body);
+    const contactData = {
+      ...req.body,
+      owner: req.user._id,
+    };
+    const newContact = await addContact(contactData);
     res.status(201).json(newContact);
   } catch (err) {
     next(err);
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", auth, async (req, res, next) => {
   try {
     const contact = await removeContact(req.params.contactId);
     if (!contact) {
@@ -52,7 +59,7 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
+router.put("/:contactId", auth, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const updatedContact = await updateContact(contactId, req.body);
@@ -65,7 +72,7 @@ router.put("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", auth, async (req, res, next) => {
   try {
     const { contactId } = req.params;
     const { favorite } = req.body;
