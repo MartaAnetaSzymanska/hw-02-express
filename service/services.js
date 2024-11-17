@@ -35,6 +35,7 @@ const updateStatus = async (contactId, { favorite }) => {
     { new: true }
   );
 };
+
 module.exports = {
   listContacts,
   getContactById,

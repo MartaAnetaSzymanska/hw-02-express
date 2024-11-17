@@ -1,13 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
-const passport = require("passport");
+const gravatar = require("gravatar");
+const path = require("path");
+const sharp = require("sharp");
+const fs = require("fs").promises;
 
 require("dotenv").config();
 const secret = process.env.SECRET;
 
 const User = require("../../models/user");
 const auth = require("../../middleware/auth");
+const { avatarsDir, upload } = require("../../middleware/upload");
 
 const Joi = require("joi");
 
@@ -31,13 +35,15 @@ router.post("/signup", async (req, res, next) => {
     });
   }
   try {
-    const newUser = new User({ email });
+    const avatarURL = gravatar.url(email, { s: "250", d: "retro" }, true);
+    const newUser = new User({ email, avatarURL });
     await newUser.setPassword(password);
     await newUser.save();
     res.status(201).json({
       user: {
         email: newUser.email,
         subcription: newUser.subscription,
+        avatarURL: newUser.avatarURL,
       },
     });
   } catch (err) {
@@ -77,6 +83,7 @@ router.post("/login", async (req, res, next) => {
       user: {
         email: user.email,
         subscription: user.subscription,
+        avatarURL: user.avatarURL,
       },
     });
   } catch (err) {
@@ -108,10 +115,46 @@ router.get("/current", auth, async (req, res) => {
     }
     res.status(200).json({
       email: user.email,
-      subscription: user.subcription,
+      subscription: user.subscription,
+      avatarURL: user.avatarURL,
     });
   } catch (err) {
     next(err);
   }
 });
+
+router.patch(
+  "/avatars",
+  auth,
+  upload.single("avatar"),
+  async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "File isn't a photo" });
+    }
+    try {
+      const { path: tempPath } = req.file;
+      const ext = path.extname(tempPath);
+      const newAvatarName = `${req.user._id}${ext}`;
+      const newAvatarPath = path.join(avatarsDir, newAvatarName);
+
+      try {
+        const image = sharp(tempPath);
+        await image.rotate(360).resize(250, 250).toFile(newAvatarPath);
+
+        await fs.unlink(tempPath);
+      } catch (err) {
+        await fs.unlink(tempPath);
+        return res
+          .status(400)
+          .json({ message: "File isn't a photo but pretending" });
+      }
+      const avatarURL = `/avatars/${newAvatarName}`;
+      await User.findByIdAndUpdate(req.user._id, { avatarURL });
+
+      res.status(200).json({ avatarURL });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 module.exports = router;

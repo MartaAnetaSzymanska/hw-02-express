@@ -1,6 +1,7 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
+const path = require("path");
 
 // instancja expressa
 const app = express();
@@ -18,6 +19,11 @@ const usersRouter = require("./routes/api/users");
 
 app.use("/api/contacts", contactsRouter);
 app.use("/api/users", usersRouter);
+
+app.use(
+  "/avatars",
+  express.static(path.resolve(__dirname, "./public/avatars"))
+);
 
 app.use((_, res) => {
   res.status(404).json({
