@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const bCrypt = require("bcryptjs");
+const { string } = require("joi");
 
 const userSchema = new mongoose.Schema({
   password: {
@@ -19,6 +20,9 @@ const userSchema = new mongoose.Schema({
   token: {
     type: String,
     default: null,
+  },
+  avatarURL: {
+    type: String,
   },
 });
 

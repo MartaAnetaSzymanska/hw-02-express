@@ -1,4 +1,7 @@
+const sharp = require("sharp");
 const Contact = require("../models/contact");
+const path = require("path");
+const fs = require("fs").promises;
 
 const listContacts = async (userId) => {
   return await Contact.find({ owner: userId });
@@ -35,6 +38,25 @@ const updateStatus = async (contactId, { favorite }) => {
     { new: true }
   );
 };
+const isImageAndTransform = async (newAvatarPath) => {
+  try {
+    const image = sharp(newAvatarPath);
+
+    const tempOutputPath = path.join(
+      path.dirname(newAvatarPath),
+      `temp-${path.basename(newAvatarPath)}`
+    );
+
+    await image.rotate(360).resize(250, 250).toFile(tempOutputPath);
+    await fs.rename(tempOutputPath, newAvatarPath);
+
+    console.log("Image processed successfully");
+    return true;
+  } catch (err) {
+    console.log("Error during image processing:", err);
+    return false;
+  }
+};
 module.exports = {
   listContacts,
   getContactById,
@@ -42,4 +64,5 @@ module.exports = {
   addContact,
   updateContact,
   updateStatus,
+  isImageAndTransform,
 };
