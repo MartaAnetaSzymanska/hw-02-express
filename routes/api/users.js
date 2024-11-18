@@ -12,6 +12,7 @@ const secret = process.env.SECRET;
 const User = require("../../models/user");
 const auth = require("../../middleware/auth");
 const { avatarsDir, upload } = require("../../middleware/upload");
+const { isImageAndTransform } = require("../../service/services");
 
 const Joi = require("joi");
 
@@ -128,32 +129,34 @@ router.patch(
   auth,
   upload.single("avatar"),
   async (req, res, next) => {
-    if (!req.file) {
-      return res.status(400).json({ message: "File isn't a photo" });
-    }
     try {
+      if (!req.file) {
+        return res.status(400).json({ message: "File isn't a photo" });
+      }
       const { path: tempPath } = req.file;
       const ext = path.extname(tempPath);
       const newAvatarName = `${req.user._id}${ext}`;
       const newAvatarPath = path.join(avatarsDir, newAvatarName);
 
       try {
-        const image = sharp(tempPath);
-        await image.rotate(360).resize(250, 250).toFile(newAvatarPath);
-
+        await fs.rename(tempPath, newAvatarPath);
+      } catch (e) {
         await fs.unlink(tempPath);
-      } catch (err) {
-        await fs.unlink(tempPath);
-        return res
-          .status(400)
-          .json({ message: "File isn't a photo but pretending" });
+        return next(e);
       }
+
+      const isValidAndTransform = await isImageAndTransform(newAvatarPath);
+      if (!isValidAndTransform) {
+        await fs.unlink(newAvatarPath);
+        return res.status(400).json({ message: "File isn't a photo" });
+      }
+
       const avatarURL = `/avatars/${newAvatarName}`;
       await User.findByIdAndUpdate(req.user._id, { avatarURL });
 
       res.status(200).json({ avatarURL });
     } catch (err) {
-      next(err);
+      return next(err);
     }
   }
 );
